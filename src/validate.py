@@ -140,6 +140,9 @@ def load_model(
         use_cache=False,
         device_map=None,
     )
+    device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+model_kwargs['device_map'] = device
+model_kwargs['torch_dtype'] = torch.float16 if device == 'mps' else torch.float32  # MPS支持fp16减少内存
     # check whether it is a lora weight
     if cached_lora:
         logger.info("Repo is a lora weight, loading model with adapter weights")
@@ -157,6 +160,7 @@ def load_model(
             device_map=None,
         )
         model = model.merge_and_unload()
+        model.to(device)
         logger.info("Loaded model with adapter weights")
     # assuming full fine-tuned model
     else:
@@ -169,6 +173,7 @@ def load_model(
         model = AutoModelForCausalLM.from_pretrained(
             model_name_or_path, token=HF_TOKEN, **model_kwargs
         )
+        model.to(device)
 
     if "output_router_logits" in model.config.to_dict():
         logger.info("set output_router_logits as True")
@@ -450,6 +455,7 @@ def validate(
             tokenizer=tokenizer,
             data_collator=data_collator,
         )
+        trainer.model.to(device)
 
         logger.info("Starting evaluation...")
         eval_result = trainer.evaluate()
