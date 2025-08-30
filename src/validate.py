@@ -539,7 +539,10 @@ def validate(
         if eval_dataset is not None:
             logger.debug("Offloading eval_dataset to save memory")
             del eval_dataset
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+elif torch.backends.mps.is_available():
+    torch.mps.empty_cache()
         # remove lora folder
         if os.path.exists("lora"):
             logger.debug("Removing lora folder")
